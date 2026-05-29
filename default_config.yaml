@@ -1,0 +1,25 @@
+rules:
+  - id: user-facing-docs-use-office
+    description: User-facing templates, forms, logs, and tracking documents must use office_artifact (LibreOffice Calc/Writer)
+    priority: critical
+    enabled: true
+    conditions:
+      - tool_name: "text_editor"
+        path_pattern: ".*(template|form|vitals|tracker|budget|invoice|certificate|report|log|dashboard).*"
+        exclude_path_pattern: ".*(\\.a0proj/|prompts/|\\.yaml$|\\.json$|\\.py$|\\.js$|\\.ts$|\\.md$|SKILL\\.md|agent\\.yaml)"
+      - tool_name: "text_editor"
+        path_pattern: ".*(documents/|workdir/).*\\.(ods|odt|odp|xlsx|docx|pptx)$"
+    block_message: "RULE VIOLATION: User-facing document detected. Use office_artifact (LibreOffice Calc/Writer) via the Desktop console instead of text_editor. The Desktop console with LibreOffice is the user's preferred interface for data entry and document interaction."
+    suggested_tool: "office_artifact"
+
+  - id: no-hidden-dir-templates
+    description: Templates and forms must not be saved to hidden framework directories
+    priority: critical
+    enabled: true
+    conditions:
+      - tool_name: "text_editor"
+        path_pattern: ".*(template|form|tracker).*"
+        args_check:
+          path: ".*(\\.a0proj/knowledge/|\\.a0proj/memory/|\\.git/).*"
+    block_message: "RULE VIOLATION: User-facing documents must be saved to accessible directories like documents/, not hidden framework directories (.a0proj/, .git/). Save to an accessible project directory instead."
+    suggested_tool: "office_artifact"
