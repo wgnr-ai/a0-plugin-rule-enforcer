@@ -9,6 +9,15 @@ from typing import Any
 
 PLUGIN_NAME = "rule_enforcer"
 
+# Only path-like argument values participate in path_pattern /
+# exclude_path_pattern matching. Free-text arguments (file content,
+# search queries, message text) must never trigger path rules.
+_PATH_LIKE_KEY = re.compile(
+    r"^(path|file|filepath|file_path|filename|dir|directory|folder|"
+    r"source|destination|target|file_id)$|(_path|_dir|_directory|_file|_folder)$",
+    re.IGNORECASE,
+)
+
 
 def load_rules(agent: Any) -> list[dict]:
     """Load enabled rules from plugin config via get_plugin_config."""
@@ -26,23 +35,23 @@ def load_rules(agent: Any) -> list[dict]:
 
 
 def extract_paths_from_args(tool_args: dict) -> list[str]:
-    """Extract all path-like values from tool arguments."""
+    """Extract path-like values from tool arguments (path-shaped keys only)."""
     paths = []
 
-    def _extract(value: Any) -> None:
+    def _extract(key: Any, value: Any) -> None:
         if isinstance(value, str):
-            if value:
+            if value and key and _PATH_LIKE_KEY.search(str(key)):
                 paths.append(value)
         elif isinstance(value, dict):
-            for v in value.values():
-                _extract(v)
+            for k, v in value.items():
+                _extract(k, v)
         elif isinstance(value, list):
             for item in value:
-                _extract(item)
+                _extract(key, item)
 
     if isinstance(tool_args, dict):
-        for v in tool_args.values():
-            _extract(v)
+        for k, v in tool_args.items():
+            _extract(k, v)
 
     return paths
 
@@ -50,14 +59,19 @@ def extract_paths_from_args(tool_args: dict) -> list[str]:
 def check_condition(condition: dict, tool_name: str, tool_args: dict) -> bool:
     """Check a single condition against a tool call (AND logic)."""
     cond_tool = condition.get("tool_name", "")
+    has_path_pattern = bool(condition.get("path_pattern"))
+    has_exclude = bool(condition.get("exclude_path_pattern"))
+    has_args_check = bool(condition.get("args_check"))
+
+    # A condition with no discriminating field at all would fire on every
+    # tool call - treat it as a configuration error, never a match.
+    if not cond_tool and not has_path_pattern and not has_exclude and not has_args_check:
+        return False
+
     if cond_tool and cond_tool != tool_name:
         return False
 
     paths = extract_paths_from_args(tool_args)
-
-    has_path_pattern = bool(condition.get("path_pattern"))
-    has_exclude = bool(condition.get("exclude_path_pattern"))
-    has_args_check = bool(condition.get("args_check"))
 
     if has_path_pattern or has_exclude:
         if not paths:

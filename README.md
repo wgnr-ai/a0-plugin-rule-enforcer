@@ -4,7 +4,13 @@ Enforces configurable behavioral rules at the tool execution layer. Blocks tool 
 
 ## How It Works
 
-The plugin registers a `tool_execute_before` lifecycle extension that intercepts every tool call before execution. It evaluates the tool name and arguments against a list of configurable rules. If a rule is violated, the tool call is blocked and a descriptive error message is returned to the agent.
+The plugin registers a `tool_execute_before` lifecycle extension that intercepts every tool call before execution. It evaluates the tool name and arguments against a list of configurable rules. If a rule is violated, the extension raises before the tool executes, so the call is blocked and the rule's guidance is returned to the agent as the tool error.
+
+### Blocking mechanics (v1.1.0)
+
+- Blocking uses `HandledException` raised from the hook — the supported mechanism on Agent Zero v2.13+.
+- Argument mutation in `tool_execute_before` is NOT supported by the framework (args are not re-read after the hook; upstream issue #1926). This plugin never mutates tool args.
+- Evaluation errors (e.g. a malformed rule) fail open: the call proceeds and the error is logged.
 
 ## Rules
 
@@ -27,7 +33,7 @@ Each condition is a set of patterns that must ALL match (AND logic):
 | Field | Type | Description |
 |-------|------|-------------|
 | `tool_name` | string | Must match exactly |
-| `path_pattern` | string | Regex matched against any path-like argument value |
+| `path_pattern` | string | Regex matched against **path-like argument values only** (`path`, `file`, `source`, `destination`, etc. — free-text args like `content` are never matched) |
 | `exclude_path_pattern` | string | Regex that excludes matching paths from the rule |
 | `args_check` | dict | Map of argument name → regex pattern for specific arg matching |
 
@@ -37,6 +43,7 @@ Each condition is a set of patterns that must ALL match (AND logic):
 - **Across conditions**: Any condition matching triggers the rule (OR)
 - Rules are evaluated in priority order (critical first)
 - First matching rule wins; evaluation stops
+- A condition with none of the four fields matches nothing (guarded against misconfiguration)
 
 ## Default Rules
 
