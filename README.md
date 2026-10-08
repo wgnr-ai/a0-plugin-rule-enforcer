@@ -6,11 +6,19 @@ Enforces configurable behavioral rules at the tool execution layer. Blocks tool 
 
 The plugin registers a `tool_execute_before` lifecycle extension that intercepts every tool call before execution. It evaluates the tool name and arguments against a list of configurable rules. If a rule is violated, the extension raises before the tool executes, so the call is blocked and the rule's guidance is returned to the agent as the tool error.
 
-### Blocking mechanics (v1.1.0)
+### Blocking mechanics (v1.1.0+)
 
 - Blocking uses `HandledException` raised from the hook — the supported mechanism on Agent Zero v2.13+.
 - Argument mutation in `tool_execute_before` is NOT supported by the framework (args are not re-read after the hook; upstream issue #1926). This plugin never mutates tool args.
 - Evaluation errors (e.g. a malformed rule) fail open: the call proceeds and the error is logged.
+
+### Audit mode (v1.2.0)
+
+Set `mode: audit` at the top of the config: violating calls are **logged, not blocked** (with the rule id and argument keys). Run new rules in audit first, review the log, then switch to `mode: enforce`.
+
+### Scoped configs (v1.2.0)
+
+With `per_project_config` / `per_agent_config` enabled in `plugin.yaml`, the Agent Zero settings UI exposes per-project and per-agent config; resolution order is agent → project → global (most specific wins, whole-file override).
 
 ## Rules
 
@@ -81,8 +89,10 @@ rules:
 ```
 rule_enforcer/
 ├── plugin.yaml                          # Plugin manifest
-├── default_config.yaml                  # Default rules
+├── default_config.yaml                  # Default rules (mode: enforce|audit)
 ├── README.md                            # This file
+├── examples/
+│   └── RULE_COOKBOOK.md                 # Copy-paste rule packs
 ├── extensions/
 │   └── python/
 │       └── tool_execute_before/

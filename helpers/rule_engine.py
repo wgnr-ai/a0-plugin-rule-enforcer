@@ -19,12 +19,16 @@ _PATH_LIKE_KEY = re.compile(
 )
 
 
-def load_rules(agent: Any) -> list[dict]:
-    """Load enabled rules from plugin config via get_plugin_config."""
+def load_config(agent: Any) -> dict:
+    """Load the full plugin config (rules + settings) via get_plugin_config."""
     from helpers.plugins import get_plugin_config
 
-    config = get_plugin_config(PLUGIN_NAME, agent=agent) or {}
-    rules = config.get("rules", [])
+    return get_plugin_config(PLUGIN_NAME, agent=agent) or {}
+
+
+def rules_from_config(config: Any) -> list[dict]:
+    """Extract enabled rules from a config dict, sorted by priority."""
+    rules = (config or {}).get("rules", [])
 
     enabled = [r for r in rules if r.get("enabled", True)]
 
@@ -32,6 +36,11 @@ def load_rules(agent: Any) -> list[dict]:
     enabled.sort(key=lambda r: priority_order.get(r.get("priority", "medium"), 2))
 
     return enabled
+
+
+def load_rules(agent: Any) -> list[dict]:
+    """Load enabled rules from plugin config via get_plugin_config."""
+    return rules_from_config(load_config(agent))
 
 
 def extract_paths_from_args(tool_args: dict) -> list[str]:

@@ -149,6 +149,33 @@ class TestDefaultRules(unittest.TestCase):
         self.assertEqual(ev(rules, "text_editor", {"path": "a.txt"})["id"], "critical")
 
 
+class TestRulesFromConfig(unittest.TestCase):
+    """v1.2.0: config/rules split (single config parse per tool call)."""
+
+    def test_filters_disabled_and_sorts_priority(self):
+        cfg = {
+            "mode": "enforce",
+            "rules": [
+                {"id": "low", "enabled": True, "priority": "low",
+                 "conditions": [{"tool_name": "t", "path_pattern": "x"}]},
+                {"id": "off", "enabled": False,
+                 "conditions": [{"tool_name": "t", "path_pattern": "x"}]},
+                {"id": "crit", "enabled": True, "priority": "critical",
+                 "conditions": [{"tool_name": "t", "path_pattern": "x"}]},
+            ],
+        }
+        ids = [r["id"] for r in rule_engine.rules_from_config(cfg)]
+        self.assertEqual(ids, ["crit", "low"])
+
+    def test_mode_passed_through_untouched(self):
+        cfg = {"mode": "audit", "rules": []}
+        self.assertEqual(cfg["mode"], "audit")
+        self.assertEqual(rule_engine.rules_from_config(cfg), [])
+
+    def test_none_config_yields_no_rules(self):
+        self.assertEqual(rule_engine.rules_from_config(None), [])
+
+
 class TestLoadRules(unittest.TestCase):
     def test_disabled_rules_skipped(self):
         with mock.patch.object(rule_engine, "PLUGIN_NAME", "rule_enforcer"):

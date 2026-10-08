@@ -1,3 +1,7 @@
+# mode: enforce (default) blocks violating tool calls.
+# mode: audit only logs would-be blocks - use it to evaluate rules safely.
+mode: enforce
+
 rules:
   - id: user-facing-docs-use-office
     description: User-facing templates, forms, logs, and tracking documents must use office_artifact (LibreOffice Calc/Writer)
