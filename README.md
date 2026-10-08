@@ -91,6 +91,10 @@ rule_enforcer/
     └── rule_engine.py                   # Pure pattern matching engine
 ```
 
+## Design lineage
+
+The block-and-guide pattern here — deny the call, tell the agent why, suggest the right tool — comes from [wOS](https://wos.wgnr.ai), wgnr.ai's open behavioral standard for agent systems: declarative principles for agents, code-level enforcement for the cases where prompt language fails. Rule Enforcer is the point tool; wOS is the system it came from. If your rules file keeps growing to cover more behaviors, that's the signal it's worth a look.
+
 ## Dependencies
 
 - Python `re` module only (no external dependencies)
